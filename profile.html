@@ -20,7 +20,6 @@
             --text-dim: #94a3b8;
             --border: rgba(255, 255, 255, 0.1);
             --success: #10b981;
-            --warning: #f59e0b;
         }
 
         body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-dark); color: var(--text-main); }
@@ -68,27 +67,27 @@
         }
 
         input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-        input:disabled { opacity: 0.5; cursor: not-allowed; }
-
+        
         .btn-save {
             background: var(--primary); color: white; border: none; padding: 12px 20px;
             border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; width: 100%;
         }
 
         .btn-save:hover { background: var(--primary-dark); transform: translateY(-1px); }
-        .btn-sec { background: transparent; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px;}
 
         .user-hero { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
-        .large-avatar {
-            width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), #8b5cf6);
-            border-radius: 20px; display: flex; align-items: center; justify-content: center;
-            font-size: 2rem; font-weight: 800;
+        .user-avatar {
+            width: 80px; height: 80px; border-radius: 20px; 
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; font-weight: 800; color: white;
+            overflow: hidden;
         }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
         #toast {
             position: fixed; bottom: 30px; right: 30px; background: var(--success);
             color: white; padding: 12px 25px; border-radius: 8px; display: none; z-index: 1000;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
         }
     </style>
 </head>
@@ -106,10 +105,10 @@
     </div>
 
     <div class="content">
-        <div class="user-hero">
-            <div class="large-avatar" id="avatarBox">B</div>
+        <div class="user-hero" id="heroSection">
+            <div class="user-avatar" id="avatarBox">B</div>
             <div>
-                <h1 id="topBusinessName" style="margin:0; font-size: 1.8rem;">Business Name</h1>
+                <h1 id="topBusinessName" style="margin:0; font-size: 1.8rem;">Loading...</h1>
                 <p id="userEmail" style="color: var(--text-dim); margin: 5px 0 0 0; font-size: 0.9rem;"></p>
             </div>
         </div>
@@ -120,49 +119,32 @@
                     <div class="card-title"><i class="fas fa-store"></i> Business Profile</div>
                     <form id="profileForm">
                         <div class="form-group">
-                            <label>Business Name</label>
+                            <label>Registered Business Name</label>
                             <input type="text" id="bizName" required>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div class="form-group">
                                 <label>GSTIN Number</label>
-                                <input type="text" id="bizGst" placeholder="Optional">
+                                <input type="text" id="bizGst" placeholder="N/A">
                             </div>
                             <div class="form-group">
-                                <label>Business Contact</label>
-                                <input type="text" id="bizPhone" placeholder="Phone Number">
+                                <label>Username</label>
+                                <input type="text" id="displayUsername" disabled style="background: rgba(255,255,255,0.05); color: var(--text-dim);">
                             </div>
                         </div>
                         <div class="form-group">
                             <label>Business Address</label>
                             <textarea id="bizAddress" rows="3"></textarea>
                         </div>
-                        <button type="submit" class="btn-save" id="saveBtn">Save Business Profile</button>
+                        <button type="submit" class="btn-save" id="saveBtn">Update Profile Details</button>
                     </form>
-                </div>
-
-                <div class="settings-card" style="border-left: 4px solid var(--warning);">
-                    <div class="card-title"><i class="fas fa-bolt"></i> Fast Login Settings</div>
-                    <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: -15px; margin-bottom: 20px;">Manage your unique username and login key.</p>
-                    
-                    <div class="form-group">
-                        <label>Your Unique Username</label>
-                        <input type="text" id="fastUsername" disabled style="background: rgba(255,255,255,0.05);">
-                        <small style="color: var(--text-dim); font-size: 0.7rem;">Username cannot be changed once set.</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Change Login Key (min 6 chars)</label>
-                        <input type="password" id="newKey" placeholder="Enter new 6-digit key">
-                    </div>
-                    <button onclick="updateLoginKey()" class="btn-save" id="keyBtn" style="background: var(--warning);">Update Security Key</button>
                 </div>
             </div>
 
             <div class="right-col">
                 <div class="settings-card">
-                    <div class="card-title"><i class="fas fa-eye"></i> Invoice Preview</div>
-                    <div id="previewCard" style="background: white; color: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div class="card-title"><i class="fas fa-eye"></i> Invoice Header Preview</div>
+                    <div id="previewCard" style="background: white; color: #1e293b; padding: 20px; border-radius: 12px;">
                         <div style="border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 10px;">
                             <strong id="preName" style="color: #2563eb; font-size: 1rem; display: block;">Business Name</strong>
                             <span id="preGst" style="font-size: 0.75rem; color: #64748b;">GSTIN: -</span>
@@ -170,15 +152,18 @@
                         <p id="preAddr" style="font-size: 0.75rem; color: #475569; margin: 0; line-height: 1.4;">Address not set</p>
                     </div>
                 </div>
+                
+                <p style="color: var(--text-dim); font-size: 0.8rem; text-align: center;">
+                    Logged in via Google Secure Auth
+                </p>
             </div>
         </div>
     </div>
 </div>
 
-<div id="toast">Settings updated!</div>
+<div id="toast">Changes saved successfully!</div>
 
 <script>
-// Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
     authDomain: "bill-nova.firebaseapp.com",
@@ -188,10 +173,13 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Auth Check
+// Auth State
 auth.onAuthStateChanged(user => {
     if (user) {
         document.getElementById('userEmail').innerText = user.email;
+        if(user.photoURL) {
+            document.getElementById('avatarBox').innerHTML = `<img src="${user.photoURL}">`;
+        }
         loadUserData(user.uid);
     } else {
         location.href = "index.html";
@@ -205,102 +193,69 @@ async function loadUserData(uid) {
             const data = snap.data();
             const profile = data.profile || {};
             
-            // Fill Fields
             document.getElementById('bizName').value = profile.companyName || "";
             document.getElementById('bizGst').value = profile.gstin || "";
             document.getElementById('bizAddress').value = profile.address || "";
-            document.getElementById('bizPhone').value = profile.phone || "";
-            document.getElementById('fastUsername').value = data.username || "Not Set";
+            document.getElementById('displayUsername').value = "@" + (data.username || "user");
             
             updatePreview(profile.companyName, profile.gstin, profile.address);
+        } else {
+            // If user logged in but no data in DB, send to setup
+            location.href = "setup.html";
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Error loading profile:", e); }
 }
 
 function updatePreview(name, gst, addr) {
-    document.getElementById('topBusinessName').innerText = name || "Business Name";
-    document.getElementById('avatarBox').innerText = (name || "B").charAt(0).toUpperCase();
+    document.getElementById('topBusinessName').innerText = name || "New Business";
     document.getElementById('preName').innerText = name || "Business Name";
-    document.getElementById('preGst').innerText = "GSTIN: " + (gst || "-");
-    document.getElementById('preAddr').innerText = addr || "Address line will appear here";
+    document.getElementById('preGst').innerText = "GSTIN: " + (gst || "N/A");
+    document.getElementById('preAddr').innerText = addr || "Address not set";
 }
 
-// Update Business Profile
+// Save Profile
 document.getElementById('profileForm').onsubmit = async (e) => {
     e.preventDefault();
     const btn = document.getElementById('saveBtn');
     btn.disabled = true;
-    
+    btn.innerText = "Syncing...";
+
     const profileData = {
         companyName: document.getElementById('bizName').value,
         gstin: document.getElementById('bizGst').value,
         address: document.getElementById('bizAddress').value,
-        phone: document.getElementById('bizPhone').value,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     try {
-        await db.collection("users").doc(auth.currentUser.uid).set({ profile: profileData }, { merge: true });
-        showToast("Profile Updated!");
-    } catch (err) { alert(err.message); }
-    btn.disabled = false;
-};
-
-// Update Fast Login Key (Sync with Auth)
-async function updateLoginKey() {
-    const newKey = document.getElementById('newKey').value.trim();
-    const username = document.getElementById('fastUsername').value;
-    const btn = document.getElementById('keyBtn');
-
-    if (newKey.length < 6) return alert("Key must be at least 6 characters!");
-    
-    btn.disabled = true;
-    btn.innerText = "Syncing Security Key...";
-
-    try {
-        // 1. Get the Secondary UID from Firestore
-        const userDoc = await db.collection("users").doc(auth.currentUser.uid).get();
-        const fastLoginUid = userDoc.data().fastLoginUid;
-
-        if (!fastLoginUid) {
-            alert("Fast Login account not found. Please contact support.");
-            return;
-        }
-
-        // NOTE: Direct password update of another user from client side is restricted.
-        // So we store the new key in Firestore, and the user will use it next time they login.
-        // For a more secure "Fast Login", we update the key in the user's document.
-        
+        // Update only the profile field inside the user document
         await db.collection("users").doc(auth.currentUser.uid).update({
-            dailyLoginKeyHash: newKey // In a real app, hash this!
+            profile: profileData
         });
-
-        // Optional: If you want to actually update the Firebase Auth Password for that fake account, 
-        // it requires re-authentication which is complex on a single page. 
-        // This Firestore update is enough for your current "Verify" logic.
-
-        showToast("Security Key Updated!");
-        document.getElementById('newKey').value = "";
+        showToast();
     } catch (err) {
-        alert("Error: " + err.message);
+        alert("Error saving data: " + err.message);
     }
     btn.disabled = false;
-    btn.innerText = "Update Security Key";
-}
+    btn.innerText = "Update Profile Details";
+};
 
-function showToast(msg) {
+function showToast() {
     const t = document.getElementById('toast');
-    t.innerText = msg;
     t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 3000);
 }
 
 function logout() { auth.signOut().then(() => location.href = "index.html"); }
 
-// Live Preview
+// Live Preview listeners
 ['bizName', 'bizGst', 'bizAddress'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
-        updatePreview(document.getElementById('bizName').value, document.getElementById('bizGst').value, document.getElementById('bizAddress').value);
+        updatePreview(
+            document.getElementById('bizName').value, 
+            document.getElementById('bizGst').value, 
+            document.getElementById('bizAddress').value
+        );
     });
 });
 </script>
