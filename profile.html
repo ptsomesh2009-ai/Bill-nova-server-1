@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings | BillNova</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #10b981;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+        }
+
+        .page-layout { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 280px;
+            background: rgba(15, 23, 42, 0.9);
+            border-right: 1px solid var(--border);
+            padding: 30px 20px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: var(--text-dim);
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: 0.3s;
+        }
+
+        .nav-item.active { background: var(--primary); color: white; }
+
+        .content { flex: 1; padding: 50px; overflow-y: auto; }
+
+        .profile-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 40px; }
+
+        .settings-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px; }
+        
+        input, textarea {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+        }
+
+        input:focus { border-color: var(--primary); outline: none; }
+
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-save:hover { background: var(--primary-dark); }
+        .btn-save:disabled { background: #475569; cursor: not-allowed; }
+
+        .user-hero { display: flex; align-items: center; gap: 25px; margin-bottom: 40px; }
+
+        .large-avatar {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-premium { background: #fef3c7; color: #92400e; }
+        .badge-admin { background: #dcfce7; color: #166534; }
+
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--success);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 12px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <h2 style="margin-bottom: 40px; color: var(--primary);">BillNova</h2>
+        <a href="dashboard.html" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+        <a href="invoice.html" class="nav-item"><i class="fas fa-plus"></i> New Invoice</a>
+        <a href="clients.html" class="nav-item"><i class="fas fa-users"></i> Clients</a>
+        <a href="#" class="nav-item active"><i class="fas fa-user-cog"></i> Account Settings</a>
+        <a href="#" onclick="logout()" class="nav-item" style="margin-top: 50px; color: #ef4444;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+
+    <div class="content">
+        <div class="user-hero">
+            <div class="large-avatar" id="avatarBox">B</div>
+            <div>
+                <h1 id="topBusinessName" style="margin:0;">Jantraji devi vidya mandir</h1>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <span class="badge badge-admin">Administrator</span>
+                    <span class="badge badge-premium">Professional Plan</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-grid">
+            <div class="left-col">
+                <div class="settings-card">
+                    <div class="card-title"><i class="fas fa-building"></i> Business Details</div>
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label>Registered Business Name</label>
+                            <input type="text" id="bizName" value="Jantraji devi vidya mandir" required>
+                        </div>
+                        <div style="display: flex; gap: 20px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label>Business GSTIN</label>
+                                <input type="text" id="bizGst" value="123456778">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Contact Email</label>
+                                <input type="email" id="bizEmail">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Business Address</label>
+                            <textarea id="bizAddress" rows="4">lambhua, sultanpur</textarea>
+                        </div>
+                        <button type="submit" class="btn-save" id="saveBtn">Save All Changes</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="right-col">
+                <div class="settings-card" style="background: linear-gradient(rgba(59, 130, 246, 0.1), rgba(0,0,0,0));">
+                    <div class="card-title"><i class="fas fa-signature"></i> Invoice Header</div>
+                    <div id="previewCard" style="background: white; color: black; padding: 15px; border-radius: 10px; font-size: 0.75rem;">
+                        <strong id="preName" style="color: var(--primary); font-size: 0.9rem;">Jantraji devi vidya mandir</strong><br>
+                        <span id="preGst">GSTIN: 123456778</span><br>
+                        <span id="preAddr" style="color: #666;">lambhua, sultanpur</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast">Changes saved successfully!</div>
+
+<script>
+// --- Firebase Config ---
+const firebaseConfig = {
+    apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
+    authDomain: "bill-nova.firebaseapp.com",
+    projectId: "bill-nova"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// --- Auth State & Initial Load ---
+auth.onAuthStateChanged(user => {
+    if (user) {
+        console.log("Logged in as:", user.uid);
+        loadData(user.uid);
+    } else {
+        location.href = "index.html";
+    }
+});
+
+async function loadData(uid) {
+    try {
+        const docRef = db.collection("users").doc(uid);
+        const snap = await docRef.get();
+
+        if (snap.exists) {
+            const data = snap.data().profile || {};
+            document.getElementById('bizName').value = data.companyName || "";
+            document.getElementById('bizGst').value = data.gstin || "";
+            document.getElementById('bizEmail').value = data.email || auth.currentUser.email;
+            document.getElementById('bizAddress').value = data.address || "";
+            updateUI(data.companyName, data.gstin, data.address);
+        }
+    } catch (e) {
+        console.error("Error loading data:", e);
+    }
+}
+
+function updateUI(name, gst, addr) {
+    document.getElementById('topBusinessName').innerText = name || "New Business";
+    document.getElementById('avatarBox').innerText = (name || "B").charAt(0).toUpperCase();
+    document.getElementById('preName').innerText = name || "Business Name";
+    document.getElementById('preGst').innerText = "GSTIN: " + (gst || "-");
+    document.getElementById('preAddr').innerText = addr || "Address not set";
+}
+
+// --- The Fixed Save Action ---
+document.getElementById('profileForm').onsubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!auth.currentUser) {
+        alert("Session expired. Please log in again.");
+        return;
+    }
+
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerText = "Syncing with Database...";
+    
+    const profile = {
+        companyName: document.getElementById('bizName').value,
+        gstin: document.getElementById('bizGst').value,
+        email: document.getElementById('bizEmail').value,
+        address: document.getElementById('bizAddress').value,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+        // Path matches rules: users/{userId}/
+        await db.collection("users").doc(auth.currentUser.uid).set({ profile }, { merge: true });
+        
+        updateUI(profile.companyName, profile.gstin, profile.address);
+        showToast();
+    } catch(err) {
+        console.error("Firebase Error:", err.code, err.message);
+        alert("Permission Error: Please ensure you clicked 'Publish' in Firebase Rules and wait 1 minute.");
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = "Save All Changes";
+    }
+};
+
+function showToast() {
+    const t = document.getElementById('toast');
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function logout() { auth.signOut().then(() => location.href = "index.html"); }
+
+// Live Preview listeners
+['bizName', 'bizGst', 'bizAddress'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+        updateUI(document.getElementById('bizName').value, document.getElementById('bizGst').value, document.getElementById('bizAddress').value);
+    });
+});
+</script>
+</body>
+</html>

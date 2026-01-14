@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bill Nova | Login</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { margin:0; background:#0f172a; color:white; font-family:'Inter', sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; }
+        .box { width:360px; padding:40px; background:#1e293b; border-radius:16px; border:1px solid rgba(255,255,255,0.1); text-align:center; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5); }
+        input { width:100%; padding:12px; margin:10px 0; border-radius:8px; border:1px solid #334155; background:#0f172a; color:white; box-sizing:border-box; }
+        button { width:100%; padding:12px; margin-top:10px; border-radius:8px; border:none; background:#3b82f6; color:white; font-weight:600; cursor:pointer; transition:0.3s; }
+        button:hover { background:#2563eb; }
+        .google-btn { background:white; color:#0f172a; margin-top:20px; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h1 style="color:#3b82f6; margin-bottom:5px;">Bill Nova</h1>
+    <p style="color:#94a3b8; margin-bottom:30px;">Professional Billing Suite</p>
+
+    <input id="email" placeholder="Email Address">
+    <input id="password" placeholder="Daily Login Key" type="password">
+    <button onclick="userLogin()" id="loginBtn">Login</button>
+
+    <button class="google-btn" onclick="googleLogin()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:15px; vertical-align:middle; margin-right:8px;">
+        Sign in with Google
+    </button>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
+    authDomain: "bill-nova.firebaseapp.com",
+    projectId: "bill-nova"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// Google login
+function googleLogin(){
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).then(() => location.href = "profile.html").catch(err => alert(err.message));
+}
+
+async function userLogin(){
+    const u = document.getElementById('loginUsername').value.trim(); // e.g., "somesh"
+    const k = document.getElementById('loginKey').value.trim();      // e.g., "12345"
+    
+    if(!u || !k) return alert("Fill all fields");
+
+    // We turn the username into a fake email format that Firebase understands
+    const fakeEmail = u + "@billnova.com";
+
+    try {
+        // This officially logs the user into Firebase
+        // Now the Security Rules will say "OK, I know who this is!"
+        await auth.signInWithEmailAndPassword(fakeEmail, k);
+        
+        location.href = "dashboard.html";
+    } catch (err) {
+        console.error(err);
+        alert("Login failed: Check your username and daily key.");
+    }
+}
+</script>
+</body>
+</html>

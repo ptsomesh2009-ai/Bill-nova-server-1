@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Bill Nova Setup</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+<style>
+    body{margin:0;background:#0f172a;color:white;font-family:Arial}
+    .box{width:360px;margin:100px auto;padding:30px;background:#020617;border-radius:12px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
+    input,button{width:90%;padding:12px;margin:8px;border-radius:6px;border:none;box-sizing:border-box}
+    input{background:#0f172a;color:white;border:1px solid #334155}
+    button{background:#3b82f6;color:white;cursor:pointer;font-weight:bold}
+    button:hover{background:#2563eb}
+</style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Account Registration</h2>
+    <p style="color:#94a3b8;font-size:13px">This will link your Google login to your Business Profile.</p>
+    
+    <input id="username" placeholder="Choose Username (e.g. somesh)">
+    <input id="key" placeholder="Create Daily Login Key" type="password">
+    <input id="confirm" placeholder="Confirm Daily Login Key" type="password">
+
+    <button onclick="createAccount()" id="setupBtn">Complete Setup</button>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
+    authDomain: "bill-nova.firebaseapp.com",
+    projectId: "bill-nova"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let currentUser = null;
+
+auth.onAuthStateChanged(user => {
+    if(!user) {
+        location.href="index.html"; 
+    } else {
+        currentUser = user;
+    }
+});
+
+async function createAccount(){
+    const btn = document.getElementById("setupBtn");
+    const u = document.getElementById("username").value.trim().toLowerCase();
+    const k = document.getElementById("key").value.trim();
+    const c = document.getElementById("confirm").value.trim();
+
+    if(!u || !k || !c) return alert("Fill all fields");
+    if(k !== c) return alert("Keys do not match");
+
+    btn.innerText = "Syncing with Database...";
+    btn.disabled = true;
+
+    try {
+        // 1. Check if username is taken in Firestore
+        const q = await db.collection("users").where("username","==",u).get();
+        if(!q.empty) {
+            alert("Username already taken");
+            btn.disabled = false;
+            return;
+        }
+
+        // 2. Setup the User Document in the protected /users/{uid} path
+        // This path is authorized by your security rules
+        await db.collection("users").doc(currentUser.uid).set({
+            username: u,
+            email: currentUser.email,
+            dailyLoginKeyHash: k, // Store the key for validation
+            role: "user",
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            // Pre-fill profile using data from your INV-0001 invoice 
+            profile: {
+                companyName: "Jantraji devi vidya mandir",
+                gstin: "123456778",
+                address: "lambhua, sultanpur"
+            }
+        }, { merge: true });
+
+        alert("Account Synced Successfully!");
+        location.href="dashboard.html";
+
+    } catch (e) {
+        console.error(e);
+        alert("Permission Error: " + e.message);
+        btn.innerText = "Complete Setup";
+        btn.disabled = false;
+    }
+}
+</script>
+</body>
+</html>

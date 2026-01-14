@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Clients | BillNova</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Sidebar */
+        .sidebar {
+            width: 260px;
+            background: rgba(15, 23, 42, 0.95);
+            border-right: 1px solid var(--border);
+            padding: 30px 20px;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: var(--text-dim);
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: 0.3s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 40px;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        /* Search Box */
+        .search-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 350px;
+        }
+
+        .search-bar input {
+            background: transparent;
+            border: none;
+            color: white;
+            outline: none;
+            width: 100%;
+        }
+
+        /* Buttons */
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.3s;
+        }
+
+        .btn-add:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); }
+
+        /* Client Table */
+        .table-container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 18px 25px; background: rgba(255,255,255,0.03); font-size: 0.8rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 1px; }
+        td { padding: 18px 25px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+
+        .client-info { display: flex; align-items: center; gap: 12px; }
+        .client-avatar { width: 35px; height: 35px; background: #475569; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; }
+
+        .action-icon { cursor: pointer; color: var(--text-dim); margin-left: 15px; transition: 0.2s; }
+        .action-icon:hover { color: var(--primary); }
+
+        /* Modal Overlay */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            width: 450px;
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px; }
+        .form-group input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid var(--border); border-radius: 8px; color: white; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2 style="color: var(--primary); margin-bottom: 40px;">BillNova</h2>
+    <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i> Dashboard</a>
+    <a href="invoice.html" class="nav-item"><i class="fas fa-plus"></i> New Invoice</a>
+    <a href="clients.html" class="nav-item active"><i class="fas fa-users"></i> Clients</a>
+    <a href="profile.html" class="nav-item"><i class="fas fa-user-cog"></i> Profile</a>
+</div>
+
+<div class="main-content">
+    <div class="header-actions">
+        <div>
+            <h1 style="margin: 0;">Client Directory</h1>
+            <p style="color: var(--text-dim); margin-top: 5px;">Manage and view all your customer data in one place.</p>
+        </div>
+        <button class="btn-add" onclick="toggleModal(true)"><i class="fas fa-plus"></i> Add New Client</button>
+    </div>
+
+    <div class="search-bar">
+        <i class="fas fa-search" style="color: var(--text-dim);"></i>
+        <input type="text" id="searchInput" placeholder="Search by name, GSTIN or email..." onkeyup="filterTable()">
+    </div>
+
+    <br>
+
+    <div class="table-container">
+        <table id="clientTable">
+            <thead>
+                <tr>
+                    <th>Client Name</th>
+                    <th>GSTIN</th>
+                    <th>Email / Phone</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="clientBody">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal" id="clientModal">
+    <div class="modal-content">
+        <h2 style="margin-top: 0;">New Client Profile</h2>
+        <form id="clientForm">
+            <div class="form-group">
+                <label>Full Name / Business Name</label>
+                <input type="text" id="cName" required>
+            </div>
+            <div class="form-group">
+                <label>GSTIN (Optional)</label>
+                <input type="text" id="cGst">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="cEmail">
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" id="cPhone">
+            </div>
+            <div class="form-group">
+                <label>Full Address</label>
+                <input type="text" id="cAddress">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button type="button" class="btn-add" style="background: #334155;" onclick="toggleModal(false)">Cancel</button>
+                <button type="submit" class="btn-add" style="flex: 1; justify-content: center;">Save Client</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// --- Firebase Config ---
+const firebaseConfig = {
+    apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
+    authDomain: "bill-nova.firebaseapp.com",
+    projectId: "bill-nova"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// --- Initialization ---
+auth.onAuthStateChanged(user => {
+    if (user) { loadClients(user.uid); }
+    else { location.href = "index.html"; }
+});
+
+function toggleModal(show) {
+    document.getElementById('clientModal').style.display = show ? 'flex' : 'none';
+}
+
+// --- Load Clients ---
+async function loadClients(uid) {
+    const tbody = document.getElementById('clientBody');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading database...</td></tr>';
+
+    const snap = await db.collection("users").doc(uid).collection("clients").get();
+    tbody.innerHTML = '';
+
+    if (snap.empty) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-dim);">No clients found. Add your first client!</td></tr>';
+        return;
+    }
+
+    snap.forEach(doc => {
+        const c = doc.data();
+        const initial = c.name.charAt(0).toUpperCase();
+        const row = `
+            <tr>
+                <td>
+                    <div class="client-info">
+                        <div class="client-avatar">${initial}</div>
+                        <strong>${c.name}</strong>
+                    </div>
+                </td>
+                <td><code style="color:var(--primary)">${c.gstin || 'N/A'}</code></td>
+                <td>
+                    <div style="font-size:0.85rem">${c.email || ''}</div>
+                    <div style="font-size:0.75rem; color:var(--text-dim)">${c.phone || ''}</div>
+                </td>
+                <td><span style="color:var(--success); font-size:0.8rem;">● Active</span></td>
+                <td>
+                    <i class="fas fa-edit action-icon" title="Edit"></i>
+                    <i class="fas fa-history action-icon" title="View Invoices"></i>
+                    <i class="fas fa-trash action-icon" style="color:#f87171" onclick="deleteClient('${doc.id}')"></i>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+// --- Save Client ---
+document.getElementById('clientForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const uid = auth.currentUser.uid;
+    
+    const clientData = {
+        name: document.getElementById('cName').value,
+        gstin: document.getElementById('cGst').value,
+        email: document.getElementById('cEmail').value,
+        phone: document.getElementById('cPhone').value,
+        address: document.getElementById('cAddress').value,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+        await db.collection("users").doc(uid).collection("clients").add(clientData);
+        toggleModal(false);
+        document.getElementById('clientForm').reset();
+        loadClients(uid);
+    } catch (err) {
+        alert("Error: " + err.message);
+    }
+};
+
+// --- Search Filter ---
+function filterTable() {
+    const input = document.getElementById("searchInput").value.toLowerCase();
+    const rows = document.getElementById("clientBody").getElementsByTagName("tr");
+
+    for (let i = 0; i < rows.length; i++) {
+        const text = rows[i].innerText.toLowerCase();
+        rows[i].style.display = text.includes(input) ? "" : "none";
+    }
+}
+
+async function deleteClient(id) {
+    if(confirm("Are you sure you want to delete this client?")) {
+        await db.collection("users").doc(auth.currentUser.uid).collection("clients").doc(id).delete();
+        loadClients(auth.currentUser.uid);
+    }
+}
+</script>
+
+</body>
+</html>
