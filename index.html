@@ -25,7 +25,7 @@
     <h1 style="color:#3b82f6; margin-bottom:5px;">Bill Nova</h1>
     <p style="color:#94a3b8; margin-bottom:30px;">Professional Billing Suite</p>
 
-    <input id="loginUsername" placeholder="Username">
+    <input id="loginUsername" placeholder="Username (No spaces)">
     <input id="loginKey" placeholder="Daily Login Key (min 6 chars)" type="password">
     <button onclick="userLogin()" id="loginBtn">Fast Login</button>
 
@@ -38,19 +38,16 @@
 </div>
 
 <script>
-// Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
     authDomain: "bill-nova.firebaseapp.com",
     projectId: "bill-nova"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Redirect logic
 async function checkUserStatusAndRedirect(user) {
     try {
         const userDoc = await db.collection("users").doc(user.uid).get();
@@ -60,13 +57,10 @@ async function checkUserStatusAndRedirect(user) {
             location.href = "setup.html";
         }
     } catch (err) {
-        console.error("Redirect check failed:", err);
-        // Fallback for new users
         location.href = "setup.html";
     }
 }
 
-// Google Login Function
 window.googleLogin = function() {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider)
@@ -74,32 +68,31 @@ window.googleLogin = function() {
         .catch(err => alert("Google Login Error: " + err.message));
 };
 
-// Username & Key Fast Login
 window.userLogin = async function() {
-    const u = document.getElementById('loginUsername').value.trim().toLowerCase();
+    // 1. Username se saari spaces hatana aur lowercase karna
+    const rawUsername = document.getElementById('loginUsername').value;
+    const cleanUsername = rawUsername.trim().toLowerCase().replace(/\s+/g, '');
     const k = document.getElementById('loginKey').value.trim();
     const btn = document.getElementById('loginBtn');
 
-    if(!u || k.length < 6) {
-        return alert("Bhai, Username bhariye aur Key kam se kam 6 characters ki honi chahiye!");
+    if(!cleanUsername || k.length < 6) {
+        return alert("Username bhariye aur Key kam se kam 6 characters ki honi chahiye!");
     }
 
     btn.disabled = true;
     btn.innerText = "Authenticating...";
 
-    const fakeEmail = u + "@billnova.com";
+    // 2. Safe email format create karna
+    const fakeEmail = cleanUsername + "@billnova.com";
 
     try {
-        // Try Login
         const result = await auth.signInWithEmailAndPassword(fakeEmail, k);
-        console.log("Login Success");
         checkUserStatusAndRedirect(result.user);
     } catch (err) {
-        // If user doesn't exist, create it (First time fast login)
+        // Agar user nahi mila (auth/user-not-found) ya pehli baar hai
         if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
             try {
                 const newUser = await auth.createUserWithEmailAndPassword(fakeEmail, k);
-                console.log("New Fast User Created");
                 location.href = "setup.html";
             } catch (createErr) {
                 alert("Creation Error: " + createErr.message);
