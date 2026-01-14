@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bill Nova | Login</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
@@ -9,10 +10,13 @@
     <style>
         body { margin:0; background:#0f172a; color:white; font-family:'Inter', sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; }
         .box { width:360px; padding:40px; background:#1e293b; border-radius:16px; border:1px solid rgba(255,255,255,0.1); text-align:center; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5); }
-        input { width:100%; padding:12px; margin:10px 0; border-radius:8px; border:1px solid #334155; background:#0f172a; color:white; box-sizing:border-box; }
+        input { width:100%; padding:12px; margin:10px 0; border-radius:8px; border:1px solid #334155; background:#0f172a; color:white; box-sizing:border-box; outline:none; }
+        input:focus { border-color: #3b82f6; }
         button { width:100%; padding:12px; margin-top:10px; border-radius:8px; border:none; background:#3b82f6; color:white; font-weight:600; cursor:pointer; transition:0.3s; }
         button:hover { background:#2563eb; }
-        .google-btn { background:white; color:#0f172a; margin-top:20px; }
+        button:disabled { background:#1e293b; color:#64748b; cursor:not-allowed; }
+        .google-btn { background:white; color:#0f172a; margin-top:20px; display:flex; align-items:center; justify-content:center; gap:10px; }
+        hr { border:0; border-top:1px solid #334155; margin:25px 0; }
     </style>
 </head>
 <body>
@@ -21,51 +25,94 @@
     <h1 style="color:#3b82f6; margin-bottom:5px;">Bill Nova</h1>
     <p style="color:#94a3b8; margin-bottom:30px;">Professional Billing Suite</p>
 
-    <input id="email" placeholder="Email Address">
-    <input id="password" placeholder="Daily Login Key" type="password">
+    <input id="loginUsername" placeholder="Username">
+    <input id="loginKey" placeholder="Daily Login Key" type="password">
     <button onclick="userLogin()" id="loginBtn">Login</button>
 
+    <hr>
+
     <button class="google-btn" onclick="googleLogin()">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:15px; vertical-align:middle; margin-right:8px;">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
         Sign in with Google
     </button>
 </div>
 
 <script>
+// Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
     authDomain: "bill-nova.firebaseapp.com",
     projectId: "bill-nova"
 };
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+const db = firebase.firestore();
 
-// Google login
-function googleLogin(){
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).then(() => location.href = "profile.html").catch(err => alert(err.message));
+/**
+ * Checks if a user has already completed the setup process.
+ * If yes, go to dashboard. If no, go to setup.
+ */
+async function checkUserStatusAndRedirect(user) {
+    const btn = document.getElementById('loginBtn');
+    try {
+        // Query the 'users' collection for this specific UID
+        // This works because the user is already authenticated at this point
+        const userDoc = await db.collection("users").doc(user.uid).get();
+
+        if (userDoc.exists) {
+            // Document found: User is set up
+            location.href = "dashboard.html";
+        } else {
+            // No document: User is new or hasn't finished setup
+            location.href = "setup.html";
+        }
+    } catch (err) {
+        console.error("Redirection Error:", err);
+        alert("Permission Error: " + err.message); //
+        btn.disabled = false;
+        btn.innerText = "Login";
+    }
 }
 
-async function userLogin(){
-    const u = document.getElementById('loginUsername').value.trim(); // e.g., "somesh"
-    const k = document.getElementById('loginKey').value.trim();      // e.g., "12345"
-    
-    if(!u || !k) return alert("Fill all fields");
+// Google Authentication
+function googleLogin(){
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            checkUserStatusAndRedirect(result.user);
+        })
+        .catch(err => alert("Google Login Failed: " + err.message));
+}
 
-    // We turn the username into a fake email format that Firebase understands
+// Username and Daily Key Authentication
+async function userLogin(){
+    const u = document.getElementById('loginUsername').value.trim();
+    const k = document.getElementById('loginKey').value.trim();
+    const btn = document.getElementById('loginBtn');
+
+    if(!u || !k) return alert("Please enter both Username and Key");
+
+    btn.disabled = true;
+    btn.innerText = "Authenticating...";
+
+    // Creating the "Hidden Email" for Firebase Auth
     const fakeEmail = u + "@billnova.com";
 
     try {
-        // This officially logs the user into Firebase
-        // Now the Security Rules will say "OK, I know who this is!"
-        await auth.signInWithEmailAndPassword(fakeEmail, k);
+        // Sign in officially to Firebase Auth to satisfy Security Rules
+        const result = await auth.signInWithEmailAndPassword(fakeEmail, k);
         
-        location.href = "dashboard.html";
+        // After successful auth, check if they need setup
+        checkUserStatusAndRedirect(result.user);
     } catch (err) {
         console.error(err);
         alert("Login failed: Check your username and daily key.");
+        btn.disabled = false;
+        btn.innerText = "Login";
     }
 }
 </script>
+
 </body>
 </html>
