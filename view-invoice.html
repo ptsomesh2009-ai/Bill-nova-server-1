@@ -13,32 +13,40 @@
         :root { --primary: #3b82f6; --bg-dark: #0f172a; --card-bg: #ffffff; --text-dark: #1e293b; --border: #e2e8f0; }
         body { margin: 0; font-family: 'Inter', sans-serif; background: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; padding: 40px; }
         
-        /* Control Bar */
         .controls { width: 800px; display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
         .btn-back { background: #334155; color: white; }
         .btn-print { background: var(--primary); color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        /* Invoice Sheet (White Background for Printing) */
-        .invoice-sheet { width: 800px; background: white; color: var(--text-dark); padding: 50px; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); box-sizing: border-box; }
+        /* Invoice Sheet */
+        .invoice-sheet { 
+            width: 800px; 
+            background: white; 
+            color: var(--text-dark); 
+            padding: 50px; 
+            border-radius: 4px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            box-sizing: border-box; 
+        }
         .header { display: flex; justify-content: space-between; border-bottom: 2px solid var(--primary); padding-bottom: 20px; margin-bottom: 30px; }
         .biz-info h2 { color: var(--primary); margin: 0; }
         .inv-details { text-align: right; }
         
         table { width: 100%; border-collapse: collapse; margin: 30px 0; }
-        th { background: #f8fafc; text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
-        td { padding: 12px; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; text-align: left; padding: 12px; border-bottom: 1px solid var(--border); color: #64748b; font-size: 13px; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
         
-        .totals { margin-left: auto; width: 300px; }
-        .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
-        .grand-total { border-top: 2px solid var(--primary); margin-top: 10px; font-weight: bold; font-size: 1.2rem; color: var(--primary); }
+        .totals { margin-left: auto; width: 300px; margin-top: 20px; }
+        .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+        .grand-total { border-top: 2px solid var(--primary); margin-top: 10px; font-weight: bold; font-size: 1.2rem; color: var(--primary); padding-top: 10px; }
         
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; display: flex; justify-content: center; align-items: center; z-index: 100; }
         
         @media print {
             body { background: white; padding: 0; }
             .controls { display: none; }
-            .invoice-sheet { box-shadow: none; width: 100%; }
+            .invoice-sheet { box-shadow: none; width: 100%; padding: 20px; }
         }
     </style>
 </head>
@@ -47,7 +55,7 @@
 <div id="loading-overlay"><h2>Loading Invoice Data...</h2></div>
 
 <div class="controls">
-    <button class="btn btn-back" onclick="history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+    <button class="btn btn-back" onclick="location.href='history.html'"><i class="fas fa-arrow-left"></i> Back to History</button>
     <button class="btn btn-print" onclick="downloadPDF()"><i class="fas fa-download"></i> Download PDF</button>
 </div>
 
@@ -66,7 +74,7 @@
     </div>
 
     <div style="margin-bottom: 30px;">
-        <p style="color:#64748b; font-size:12px; text-transform:uppercase; margin-bottom:5px;">Bill To:</p>
+        <p style="color:#64748b; font-size:11px; text-transform:uppercase; margin-bottom:5px; font-weight: bold;">Bill To:</p>
         <h3 id="disp-clientName" style="margin:0;">Client Name</h3>
         <p id="disp-clientGst" style="margin:5px 0; font-size:14px;">GSTIN: ---</p>
     </div>
@@ -80,8 +88,7 @@
                 <th>Total</th>
             </tr>
         </thead>
-        <tbody id="disp-items">
-            </tbody>
+        <tbody id="disp-items"></tbody>
     </table>
 
     <div class="totals">
@@ -90,7 +97,7 @@
             <span id="disp-subtotal">₹0.00</span>
         </div>
         <div class="total-row">
-            <span>GST (18%):</span>
+            <span id="gst-label">GST (18%):</span>
             <span id="disp-gst">₹0.00</span>
         </div>
         <div class="total-row grand-total">
@@ -99,7 +106,7 @@
         </div>
     </div>
 
-    <div style="margin-top: 50px; border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
+    <div style="margin-top: 60px; border-top: 1px solid #e2e8f0; padding-top: 20px; font-size: 11px; color: #94a3b8; text-align: center;">
         Thank you for your business! This is a computer-generated invoice.
     </div>
 </div>
@@ -115,7 +122,7 @@ auth.onAuthStateChanged(async (user) => {
         const invId = sessionStorage.getItem("viewInvoiceId");
         if (!invId) {
             alert("No invoice selected!");
-            location.href = "invoice-history.html";
+            location.href = "history.html";
             return;
         }
         await fetchInvoiceData(user.uid, invId);
@@ -126,18 +133,16 @@ auth.onAuthStateChanged(async (user) => {
 
 async function fetchInvoiceData(uid, invId) {
     try {
-        // Fetch User Profile
         const userSnap = await db.collection("users").doc(uid).get();
-        const biz = userSnap.data().profile;
-        document.getElementById('disp-myBiz').innerText = biz.companyName;
-        document.getElementById('disp-myAddr').innerText = biz.address;
+        const biz = userSnap.data().profile || {};
+        document.getElementById('disp-myBiz').innerText = biz.companyName || "My Business";
+        document.getElementById('disp-myAddr').innerText = biz.address || "";
         document.getElementById('disp-myGst').innerText = "GSTIN: " + (biz.gstin || "N/A");
 
-        // Fetch Specific Invoice
         const invSnap = await db.collection("users").doc(uid).collection("invoices").doc(invId).get();
-        
         if (!invSnap.exists) {
             alert("Invoice not found!");
+            location.href = "history.html";
             return;
         }
 
@@ -147,7 +152,6 @@ async function fetchInvoiceData(uid, invId) {
         document.getElementById('disp-clientName').innerText = inv.clientName;
         document.getElementById('disp-clientGst').innerText = "GSTIN: " + (inv.clientGst || "N/A");
 
-        // Load Items
         const itemBody = document.getElementById('disp-items');
         let subtotal = 0;
         inv.items.forEach(item => {
@@ -157,19 +161,22 @@ async function fetchInvoiceData(uid, invId) {
                 <tr>
                     <td>${item.desc}</td>
                     <td>${item.qty}</td>
-                    <td>₹${parseFloat(item.price).toFixed(2)}</td>
-                    <td>₹${lineTotal.toFixed(2)}</td>
+                    <td>₹${parseFloat(item.price).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td>₹${lineTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 </tr>
             `;
         });
 
-        const gst = subtotal * 0.18;
-        document.getElementById('disp-subtotal').innerText = '₹' + subtotal.toFixed(2);
-        document.getElementById('disp-gst').innerText = '₹' + gst.toFixed(2);
-        document.getElementById('disp-total').innerText = '₹' + (subtotal + gst).toFixed(2);
+        // Use saved GST rate or default to 18
+        const gstRate = inv.gstRate || 18;
+        const gstAmount = subtotal * (gstRate / 100);
+        
+        document.getElementById('gst-label').innerText = `GST (${gstRate}%):`;
+        document.getElementById('disp-subtotal').innerText = '₹' + subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        document.getElementById('disp-gst').innerText = '₹' + gstAmount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        document.getElementById('disp-total').innerText = '₹' + (subtotal + gstAmount).toLocaleString('en-IN', {minimumFractionDigits: 2});
 
         document.getElementById('loading-overlay').style.display = 'none';
-
     } catch (err) {
         console.error(err);
         alert("Error loading invoice: " + err.message);
@@ -179,13 +186,21 @@ async function fetchInvoiceData(uid, invId) {
 function downloadPDF() {
     const element = document.getElementById('print-area');
     const invNum = document.getElementById('disp-invNum').innerText;
+    
     const opt = { 
-        margin: 0.5, 
+        margin: [0.3, 0.3], // Top, Bottom margins
         filename: `Invoice_${invNum}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { 
+            scale: 2, 
+            useCORS: true, 
+            letterRendering: true,
+            width: 800 // Fixes the side-clipping issue
+        },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
+
+    // Use .set() and .from() to ensure the width is captured correctly
     html2pdf().set(opt).from(element).save();
 }
 </script>
