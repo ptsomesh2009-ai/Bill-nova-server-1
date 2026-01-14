@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bill Nova | Account Setup</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
@@ -62,11 +63,11 @@
         if(u.length < 3) return alert("Username must be at least 3 characters.");
 
         const btn = document.getElementById("setupBtn");
-        btn.innerText = "Saving Profile...";
+        btn.innerText = "Creating Account...";
         btn.disabled = true;
 
         try {
-            // 1. Double check username uniqueness in Firestore
+            // 1. Check uniqueness (Rules allow read for everyone logged in)
             const usernameCheck = await db.collection("users").where("username", "==", u).get();
             if(!usernameCheck.empty) {
                 alert("This username is already taken. Please choose another one.");
@@ -75,11 +76,12 @@
                 return;
             }
 
-            // 2. Save Business Profile directly under the Google UID
-            await db.collection("users").doc(currentUser.uid).update({
+            // 2. Use .set() with merge:true to create the document for new users
+            await db.collection("users").doc(currentUser.uid).set({
                 username: u,
                 role: "user",
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                subscriptionExpiry: null, // Initially null until key is activated
                 profile: {
                     companyName: bName,
                     gstin: bGst,
@@ -87,13 +89,12 @@
                     email: currentUser.email,
                     photoURL: currentUser.photoURL || ""
                 }
-            });
+            }, { merge: true });
 
-            // Success Redirect
             location.href = "dashboard.html";
 
         } catch (e) {
-            console.error(e);
+            console.error("Error details:", e);
             alert("Setup Error: " + e.message);
             btn.disabled = false;
             btn.innerText = "Finalize & Enter Dashboard";
@@ -102,4 +103,3 @@
 </script>
 </body>
 </html>
-
