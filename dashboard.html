@@ -28,7 +28,41 @@
             min-height: 100vh;
         }
 
-        /* Top Navigation Bar */
+        /* Subscription Block Overlay */
+        #subscriptionOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .expired-card {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            max-width: 450px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .expired-card i { font-size: 60px; color: #ef4444; margin-bottom: 20px; }
+        .btn-renew {
+            background: var(--accent);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 12px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        /* Navbar */
         .navbar {
             display: flex;
             justify-content: space-between;
@@ -51,7 +85,6 @@
             font-weight: 800;
         }
 
-        /* Profile Section */
         .user-profile {
             display: flex;
             align-items: center;
@@ -68,18 +101,17 @@
         .profile-info .role-tag { font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
 
         .profile-avatar {
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px;
             background: var(--accent);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-weight: bold;
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            overflow: hidden;
         }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Layout Container */
+        /* Dashboard Layout */
         .dashboard-wrapper {
             max-width: 1200px;
             margin: 40px auto;
@@ -90,7 +122,6 @@
         .header-greeting h1 { margin: 0; font-size: 2rem; }
         .header-greeting p { color: var(--text-secondary); margin-top: 5px; }
 
-        /* Stats Grid */
         .stats-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -109,21 +140,17 @@
         }
 
         .stat-icon {
-            width: 50px;
-            height: 50px;
+            width: 50px; height: 50px;
             background: rgba(59, 130, 246, 0.1);
             color: var(--accent);
             border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-size: 20px;
         }
 
         .stat-data .value { font-size: 1.5rem; font-weight: 700; display: block; }
         .stat-data .label { font-size: 0.8rem; color: var(--text-secondary); }
 
-        /* Menu Grid */
         .menu-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -146,45 +173,42 @@
             border-color: var(--accent);
         }
 
-        .menu-item i {
-            font-size: 32px;
-            margin-bottom: 15px;
-            color: var(--accent);
-        }
-
-        .menu-item span {
-            display: block;
-            font-weight: 600;
-            font-size: 1rem;
-        }
+        .menu-item i { font-size: 32px; margin-bottom: 15px; color: var(--accent); }
+        .menu-item span { display: block; font-weight: 600; }
 
         .logout-btn {
             background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            padding: 8px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.2s;
+            color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 8px 20px; border-radius: 20px;
+            cursor: pointer; font-weight: 600;
         }
-
         .logout-btn:hover { background: #ef4444; color: white; }
     </style>
 </head>
-
 <body>
+
+<div id="subscriptionOverlay">
+    <div class="expired-card">
+        <i class="fas fa-crown"></i>
+        <h2 style="margin: 0; color: #f8fafc;">Access Restricted</h2>
+        <p style="color: #94a3b8; margin-top: 15px; line-height: 1.6;">
+            Your account does not have an active subscription. Please enter a valid license key to continue using BillNova.
+        </p>
+        <a href="profile.html" class="btn-renew">Go to Subscription Settings</a>
+        <br>
+        <button onclick="logout()" style="background:transparent; border:none; color:#64748b; margin-top:15px; cursor:pointer; text-decoration:underline;">Logout Account</button>
+    </div>
+</div>
 
 <nav class="navbar">
     <div class="logo-section">
         <h2>BillNova</h2>
     </div>
-
     <div style="display: flex; align-items: center; gap: 30px;">
         <div class="user-profile" onclick="location.href='profile.html'">
             <div class="profile-info">
                 <span class="biz-name" id="bizNameDisplay">Loading...</span>
-                <span class="role-tag">Business Admin</span>
+                <span class="role-tag">Admin Access</span>
             </div>
             <div class="profile-avatar" id="initials">?</div>
         </div>
@@ -195,7 +219,7 @@
 <div class="dashboard-wrapper">
     <div class="header-greeting">
         <h1 id="welcomeText">Welcome back</h1>
-        <p>Your business overview and shortcuts are ready.</p>
+        <p>Dashboard is synced with your secure subscription.</p>
     </div>
 
     <div class="stats-row">
@@ -210,7 +234,7 @@
             <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
             <div class="stat-data">
                 <span class="value" id="invCount">0</span>
-                <span class="label">Invoices Created</span>
+                <span class="label">Total Invoices</span>
             </div>
         </div>
         <div class="stat-card">
@@ -225,7 +249,7 @@
     <div class="menu-grid">
         <div class="menu-item" onclick="location.href='invoice.html'">
             <i class="fas fa-plus-circle"></i>
-            <span>New Invoice</span>
+            <span>Create Invoice</span>
         </div>
         <div class="menu-item" onclick="location.href='clients.html'">
             <i class="fas fa-user-friends"></i>
@@ -233,17 +257,16 @@
         </div>
         <div class="menu-item" onclick="location.href='history.html'">
             <i class="fas fa-history"></i>
-            <span>Inv. History</span>
+            <span>Bill History</span>
         </div>
         <div class="menu-item" onclick="location.href='profile.html'">
             <i class="fas fa-user-cog"></i>
-            <span>Profile Settings</span>
+            <span>Settings</span>
         </div>
     </div>
 </div>
 
 <script>
-// --- Firebase Setup ---
 const firebaseConfig = {
     apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
     authDomain: "bill-nova.firebaseapp.com",
@@ -253,69 +276,69 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// --- Auth Check ---
+// Auth and Subscription Check
 auth.onAuthStateChanged(async (user) => {
     if (user) {
-        loadDashboardData(user);
+        if (user.photoURL) {
+            document.getElementById('initials').innerHTML = `<img src="${user.photoURL}">`;
+        }
+        
+        // Subscription Verification
+        const isValid = await checkSubscription(user.uid);
+        if (isValid) {
+            loadDashboardData(user);
+        } else {
+            // Show lock screen
+            document.getElementById('subscriptionOverlay').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
     } else {
         location.href = "index.html";
     }
 });
 
-// --- Data Engine ---
+async function checkSubscription(uid) {
+    try {
+        const snap = await db.collection("users").doc(uid).get();
+        if (!snap.exists) return false;
+        
+        const expiry = snap.data().subscriptionExpiry;
+        if (!expiry) return false;
+
+        return expiry.toDate() > new Date(); // True if not expired
+    } catch (e) { return false; }
+}
+
 async function loadDashboardData(user) {
     const uid = user.uid;
     
-    // 1. Fetch Profile Info
+    // 1. Profile Info
     try {
         const profileDoc = await db.collection("users").doc(uid).get();
-        if (profileDoc.exists) {
-            const data = profileDoc.data().profile || {};
-            const name = data.companyName || "My Business";
-            
-            document.getElementById('bizNameDisplay').innerText = name;
-            document.getElementById('welcomeText').innerText = `Welcome back, ${name}`;
-            document.getElementById('initials').innerText = name.charAt(0).toUpperCase();
-        }
-    } catch(e) { console.error("Profile Load Error", e); }
+        const bizData = profileDoc.data().profile || {};
+        const bName = bizData.companyName || "My Business";
+        document.getElementById('bizNameDisplay').innerText = bName;
+        document.getElementById('welcomeText').innerText = `Welcome back, ${bName}`;
+        if(!user.photoURL) document.getElementById('initials').innerText = bName.charAt(0);
+    } catch(e) {}
 
-    // 2. Load Stats from Invoices Sub-collection
+    // 2. Stats Calculation
     try {
         const invSnapshot = await db.collection("users").doc(uid).collection("invoices").get();
         let totalRev = 0;
-        let count = 0;
-
         invSnapshot.forEach(doc => {
-            const inv = doc.data();
-            // Using 'totalAmount' to match your create invoice logic
-            const amt = parseFloat(inv.totalAmount) || 0;
-            totalRev += amt;
-            count++;
+            totalRev += parseFloat(doc.data().totalAmount || 0);
         });
 
-        document.getElementById('invCount').innerText = count;
-        // Formatting to Indian Currency
-        document.getElementById('revVal').innerText = new Intl.NumberFormat('en-IN', { 
-            style: 'currency', 
-            currency: 'INR',
-            maximumFractionDigits: 0
-        }).format(totalRev);
-    } catch(e) { console.error("Stats Load Error", e); }
-
-    // 3. Load Client Count
-    try {
+        document.getElementById('invCount').innerText = invSnapshot.size;
+        document.getElementById('revVal').innerText = "₹" + totalRev.toLocaleString('en-IN');
+        
         const clientSnap = await db.collection("users").doc(uid).collection("clients").get();
         document.getElementById('clientCount').innerText = clientSnap.size;
-    } catch(e) { console.error("Client Load Error", e); }
+    } catch(e) {}
 }
 
-function logout() {
-    auth.signOut().then(() => {
-        sessionStorage.clear();
-        location.href = "index.html";
-    });
-}
+function logout() { auth.signOut().then(() => location.href = "index.html"); }
 </script>
-
 </body>
 </html>
