@@ -63,7 +63,6 @@
         }
 
         .user-profile:hover { background: var(--card-bg); }
-
         .profile-info { text-align: right; }
         .profile-info .biz-name { display: block; font-weight: 600; font-size: 0.9rem; }
         .profile-info .role-tag { font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
@@ -274,12 +273,9 @@ async function loadDashboardData(user) {
             const data = profileDoc.data().profile || {};
             const name = data.companyName || "My Business";
             
-            bizNameDisplay.innerText = name;
-            welcomeText.innerText = `Welcome back, ${name}`;
-            initials.innerText = name.charAt(0).toUpperCase();
-        } else {
-            bizNameDisplay.innerText = "Set Business Name";
-            initials.innerText = user.email.charAt(0).toUpperCase();
+            document.getElementById('bizNameDisplay').innerText = name;
+            document.getElementById('welcomeText').innerText = `Welcome back, ${name}`;
+            document.getElementById('initials').innerText = name.charAt(0).toUpperCase();
         }
     } catch(e) { console.error("Profile Load Error", e); }
 
@@ -291,19 +287,26 @@ async function loadDashboardData(user) {
 
         invSnapshot.forEach(doc => {
             const inv = doc.data();
-            totalRev += (inv.totals.grandTotal || 0);
+            // Using 'totalAmount' to match your create invoice logic
+            const amt = parseFloat(inv.totalAmount) || 0;
+            totalRev += amt;
             count++;
         });
 
-        invCount.innerText = count;
-        revVal.innerText = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalRev);
+        document.getElementById('invCount').innerText = count;
+        // Formatting to Indian Currency
+        document.getElementById('revVal').innerText = new Intl.NumberFormat('en-IN', { 
+            style: 'currency', 
+            currency: 'INR',
+            maximumFractionDigits: 0
+        }).format(totalRev);
     } catch(e) { console.error("Stats Load Error", e); }
 
     // 3. Load Client Count
     try {
         const clientSnap = await db.collection("users").doc(uid).collection("clients").get();
-        clientCount.innerText = clientSnap.size;
-    } catch(e) {}
+        document.getElementById('clientCount').innerText = clientSnap.size;
+    } catch(e) { console.error("Client Load Error", e); }
 }
 
 function logout() {
