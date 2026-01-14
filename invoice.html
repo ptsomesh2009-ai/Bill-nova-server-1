@@ -2,41 +2,74 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Create Invoice | Bill Nova</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <title>Create Invoice | BillNova</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 
     <style>
-        :root { --primary: #3b82f6; --bg-dark: #0f172a; --card-bg: #1e293b; --text-main: #f8fafc; --text-dim: #94a3b8; --border: rgba(255, 255, 255, 0.1); }
+        :root { 
+            --primary: #3b82f6; 
+            --bg-dark: #0f172a; 
+            --card-bg: #1e293b; 
+            --text-main: #f8fafc; 
+            --text-dim: #94a3b8; 
+            --border: rgba(255, 255, 255, 0.1); 
+        }
+        
         body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-dark); color: var(--text-main); display: flex; min-height: 100vh; }
+        
+        /* Subscription Lock Overlay */
+        #lockOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(15px);
+            z-index: 10000; display: none; align-items: center; justify-content: center;
+            flex-direction: column; text-align: center;
+        }
+        .lock-msg { background: #1e293b; padding: 40px; border-radius: 24px; border: 1px solid #ef4444; max-width: 400px; }
+
         .sidebar { width: 260px; background: rgba(15, 23, 42, 0.9); border-right: 1px solid var(--border); padding: 30px 20px; }
         .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 15px; color: var(--text-dim); text-decoration: none; border-radius: 10px; margin-bottom: 8px; transition: 0.3s; }
         .nav-item.active { background: var(--primary); color: white; }
+        
         .content { flex: 1; padding: 40px; display: flex; flex-direction: column; gap: 20px; }
-        .invoice-card { background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border); padding: 40px; }
+        .invoice-card { background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border); padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        
         input, select, textarea { background: #0f172a; border: 1px solid var(--border); padding: 10px; border-radius: 8px; color: white; width: 100%; box-sizing: border-box; }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { text-align: left; padding: 12px; color: var(--text-dim); font-size: 13px; }
+        th { text-align: left; padding: 12px; color: var(--text-dim); font-size: 13px; border-bottom: 1px solid var(--border); }
         td { padding: 10px; border-bottom: 1px solid var(--border); }
+        
         .btn { padding: 12px 25px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
         .btn-add { background: rgba(59, 130, 246, 0.1); color: var(--primary); }
         .btn-save { background: var(--primary); color: white; }
         .btn-clear { background: #ef4444; color: white; }
         .btn-print { background: #10b981; color: white; }
+        
         .total-section { margin-top: 30px; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
         .gst-input-group { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
     </style>
 </head>
 <body>
 
+<div id="lockOverlay">
+    <div class="lock-msg">
+        <i class="fas fa-lock" style="font-size: 50px; color: #ef4444; margin-bottom: 20px;"></i>
+        <h2 style="margin:0;">Access Denied</h2>
+        <p style="color: var(--text-dim); margin-top: 10px;">You need an active subscription to create or export invoices.</p>
+        <a href="profile.html" class="btn btn-save" style="margin-top: 20px; text-decoration: none; width: 100%; justify-content: center;">Activate Plan</a>
+    </div>
+</div>
+
 <div class="sidebar">
-    <h2 style="color: var(--primary);">Bill Nova</h2>
+    <h2 style="color: var(--primary); margin-bottom: 30px;">BillNova</h2>
     <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i> Dashboard</a>
-    <a href="history.html" class="nav-item"><i class="fas fa-file-invoice"></i> Invoices</a>
+    <a href="history.html" class="nav-item active"><i class="fas fa-file-invoice"></i> Invoices</a>
     <a href="clients.html" class="nav-item"><i class="fas fa-users"></i> Clients</a>
     <a href="profile.html" class="nav-item"><i class="fas fa-user-cog"></i> Settings</a>
 </div>
@@ -111,15 +144,37 @@
 
 <script>
 // Firebase Config
-const firebaseConfig = { apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU", authDomain: "bill-nova.firebaseapp.com", projectId: "bill-nova" };
+const firebaseConfig = { 
+    apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU", 
+    authDomain: "bill-nova.firebaseapp.com", 
+    projectId: "bill-nova" 
+};
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-auth.onAuthStateChanged(user => {
-    if (user) { loadProfile(user.uid); } 
+// Security Guard on Load
+auth.onAuthStateChanged(async user => {
+    if (user) { 
+        const isValid = await checkSubStatus(user.uid);
+        if (!isValid) {
+            document.getElementById('lockOverlay').style.display = 'flex';
+        } else {
+            loadProfile(user.uid); 
+        }
+    } 
     else { location.href = "index.html"; }
 });
+
+async function checkSubStatus(uid) {
+    try {
+        const snap = await db.collection("users").doc(uid).get();
+        if(!snap.exists) return false;
+        const expiry = snap.data().subscriptionExpiry;
+        if(!expiry) return false;
+        return expiry.toDate() > new Date(); // Returns true if valid
+    } catch(e) { return false; }
+}
 
 async function loadProfile(uid) {
     const snap = await db.collection("users").doc(uid).get();
@@ -157,16 +212,18 @@ function updateTotals() {
     document.querySelectorAll('.item-total').forEach(el => {
         sub += parseFloat(el.innerText.replace('₹', '')) || 0;
     });
-    
     const gstPercent = parseFloat(document.getElementById('gstPercentage').value) || 0;
     const gstAmount = sub * (gstPercent / 100);
-    
     document.getElementById('subtotal').innerText = '₹' + sub.toFixed(2);
     document.getElementById('gstAmount').innerText = '₹' + gstAmount.toFixed(2);
     document.getElementById('grandTotal').innerText = '₹' + (sub + gstAmount).toFixed(2);
 }
 
+// Security Check before Saving
 async function saveInvoice() {
+    const valid = await checkSubStatus(auth.currentUser.uid);
+    if(!valid) return alert("Subscription Expired!");
+
     const btn = document.getElementById('saveBtn');
     btn.innerText = "Syncing...";
     btn.disabled = true;
@@ -206,15 +263,22 @@ async function saveInvoice() {
     }
 }
 
-function generatePDF() {
+async function generatePDF() {
+    const valid = await checkSubStatus(auth.currentUser.uid);
+    if(!valid) return alert("Please renew subscription to print.");
+
     const element = document.getElementById('invoice-render');
-    const opt = { margin: 0.5, filename: 'Invoice.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
+    const opt = { 
+        margin: 0.5, 
+        filename: 'Invoice.pdf', 
+        image: { type: 'jpeg', quality: 0.98 }, 
+        html2canvas: { scale: 2 }, 
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
+    };
     html2pdf().set(opt).from(element).save();
 }
 
-function clearInvoice() {
-    if(confirm("Clear all data?")) location.reload();
-}
+function clearInvoice() { if(confirm("Clear all data?")) location.reload(); }
 </script>
 </body>
 </html>
