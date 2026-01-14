@@ -25,7 +25,7 @@
     <h1 style="color:#3b82f6; margin-bottom:5px;">Bill Nova</h1>
     <p style="color:#94a3b8; margin-bottom:30px;">Professional Billing Suite</p>
 
-    <input id="loginUsername" placeholder="Username (No spaces)">
+    <input id="loginUsername" placeholder="Username (Unique)">
     <input id="loginKey" placeholder="Daily Login Key (min 6 chars)" type="password">
     <button onclick="userLogin()" id="loginBtn">Fast Login</button>
 
@@ -48,15 +48,14 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-async function checkUserStatusAndRedirect(user) {
-    try {
-        const userDoc = await db.collection("users").doc(user.uid).get();
-        if (userDoc.exists) {
-            location.href = "dashboard.html";
-        } else {
-            location.href = "setup.html";
-        }
-    } catch (err) {
+// Redirect Logic with Username Mapping
+async function handleUserRedirect(user, isGoogle = false) {
+    const userDoc = await db.collection("users").doc(user.uid).get();
+    
+    if (userDoc.exists) {
+        location.href = "dashboard.html";
+    } else {
+        // Agar naya user hai (Google ya FastLogin), usey setup pe bhejo
         location.href = "setup.html";
     }
 }
@@ -64,42 +63,42 @@ async function checkUserStatusAndRedirect(user) {
 window.googleLogin = function() {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider)
-        .then((result) => checkUserStatusAndRedirect(result.user))
-        .catch(err => alert("Google Login Error: " + err.message));
+        .then((result) => handleUserRedirect(result.user, true))
+        .catch(err => alert("Google Error: " + err.message));
 };
 
 window.userLogin = async function() {
-    // 1. Username se saari spaces hatana aur lowercase karna
-    const rawUsername = document.getElementById('loginUsername').value;
-    const cleanUsername = rawUsername.trim().toLowerCase().replace(/\s+/g, '');
+    const u = document.getElementById('loginUsername').value.trim().toLowerCase().replace(/\s+/g, '');
     const k = document.getElementById('loginKey').value.trim();
     const btn = document.getElementById('loginBtn');
 
-    if(!cleanUsername || k.length < 6) {
-        return alert("Username bhariye aur Key kam se kam 6 characters ki honi chahiye!");
-    }
+    if(!u || k.length < 6) return alert("Bhai, valid Username aur 6-digit Key chahiye!");
 
     btn.disabled = true;
-    btn.innerText = "Authenticating...";
+    btn.innerText = "Checking...";
 
-    // 2. Safe email format create karna
-    const fakeEmail = cleanUsername + "@billnova.com";
+    const fakeEmail = u + "@billnova.com";
 
     try {
+        // Step 1: Pehle check karo ki ye username kisi ne le toh nahi rakha (Different Key ke sath)
+        // Firebase auth login try karega
         const result = await auth.signInWithEmailAndPassword(fakeEmail, k);
-        checkUserStatusAndRedirect(result.user);
+        handleUserRedirect(result.user);
     } catch (err) {
-        // Agar user nahi mila (auth/user-not-found) ya pehli baar hai
-        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+        if (err.code === 'auth/user-not-found') {
+            // Naya unique username account banana
             try {
                 const newUser = await auth.createUserWithEmailAndPassword(fakeEmail, k);
                 location.href = "setup.html";
             } catch (createErr) {
-                alert("Creation Error: " + createErr.message);
+                alert("Error: " + createErr.message);
                 resetBtn();
             }
+        } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            alert("Bhai, ye Username booked hai! Sahi Key daliye ya naya username chuniye.");
+            resetBtn();
         } else {
-            alert("Error: " + err.message);
+            alert("Login Failed: " + err.message);
             resetBtn();
         }
     }
@@ -111,6 +110,5 @@ function resetBtn() {
     btn.innerText = "Fast Login";
 }
 </script>
-
 </body>
 </html>
