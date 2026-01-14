@@ -17,6 +17,7 @@
         button:disabled { background:#334155; color:#64748b; cursor:not-allowed; }
         .google-btn { background:white; color:#0f172a; margin-top:20px; display:flex; align-items:center; justify-content:center; gap:10px; }
         hr { border:0; border-top:1px solid #334155; margin:25px 0; }
+        #notice { color: #ef4444; font-size: 13px; margin-top: 15px; display: none; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -25,9 +26,11 @@
     <h1 style="color:#3b82f6; margin-bottom:5px;">Bill Nova</h1>
     <p style="color:#94a3b8; margin-bottom:30px;">Professional Billing Suite</p>
 
-    <input id="loginUsername" placeholder="Username (Unique)">
-    <input id="loginKey" placeholder="Daily Login Key (min 6 chars)" type="password">
+    <input id="loginUsername" placeholder="Username">
+    <input id="loginKey" placeholder="Daily Login Key" type="password">
     <button onclick="userLogin()" id="loginBtn">Fast Login</button>
+    
+    <div id="notice"></div>
 
     <hr>
 
@@ -48,14 +51,17 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Redirect Logic with Username Mapping
-async function handleUserRedirect(user, isGoogle = false) {
+function showNotice(msg) {
+    const n = document.getElementById('notice');
+    n.innerText = msg;
+    n.style.display = 'block';
+}
+
+async function handleRedirect(user) {
     const userDoc = await db.collection("users").doc(user.uid).get();
-    
     if (userDoc.exists) {
         location.href = "dashboard.html";
     } else {
-        // Agar naya user hai (Google ya FastLogin), usey setup pe bhejo
         location.href = "setup.html";
     }
 }
@@ -63,52 +69,41 @@ async function handleUserRedirect(user, isGoogle = false) {
 window.googleLogin = function() {
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider)
-        .then((result) => handleUserRedirect(result.user, true))
-        .catch(err => alert("Google Error: " + err.message));
+        .then((result) => handleRedirect(result.user))
+        .catch(err => alert("Google Login Failed: " + err.message));
 };
 
 window.userLogin = async function() {
     const u = document.getElementById('loginUsername').value.trim().toLowerCase().replace(/\s+/g, '');
     const k = document.getElementById('loginKey').value.trim();
     const btn = document.getElementById('loginBtn');
+    const notice = document.getElementById('notice');
 
-    if(!u || k.length < 6) return alert("Bhai, valid Username aur 6-digit Key chahiye!");
+    notice.style.display = 'none';
+    if(!u || !k) return alert("Please enter both Username and Key");
 
     btn.disabled = true;
-    btn.innerText = "Checking...";
+    btn.innerText = "Verifying...";
 
     const fakeEmail = u + "@billnova.com";
 
     try {
-        // Step 1: Pehle check karo ki ye username kisi ne le toh nahi rakha (Different Key ke sath)
-        // Firebase auth login try karega
+        // FAST LOGIN: Only tries to Sign In, NOT Create
         const result = await auth.signInWithEmailAndPassword(fakeEmail, k);
-        handleUserRedirect(result.user);
+        handleRedirect(result.user);
     } catch (err) {
-        if (err.code === 'auth/user-not-found') {
-            // Naya unique username account banana
-            try {
-                const newUser = await auth.createUserWithEmailAndPassword(fakeEmail, k);
-                location.href = "setup.html";
-            } catch (createErr) {
-                alert("Error: " + createErr.message);
-                resetBtn();
-            }
+        btn.disabled = false;
+        btn.innerText = "Fast Login";
+
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') {
+            showNotice("You are a new user. Please login first time using Google and setup your profile, then you can use Fast Login.");
         } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-            alert("Bhai, ye Username booked hai! Sahi Key daliye ya naya username chuniye.");
-            resetBtn();
+            showNotice("Invalid credentials. Please check your username and key.");
         } else {
-            alert("Login Failed: " + err.message);
-            resetBtn();
+            showNotice("Error: " + err.message);
         }
     }
 };
-
-function resetBtn() {
-    const btn = document.getElementById('loginBtn');
-    btn.disabled = false;
-    btn.innerText = "Fast Login";
-}
 </script>
 </body>
 </html>
