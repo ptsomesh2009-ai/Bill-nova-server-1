@@ -15,23 +15,24 @@
         button:hover{background:#2563eb;}
         button:disabled{background:#334155; cursor:not-allowed;}
         .section-title{color:#94a3b8;font-size:11px;text-transform:uppercase;margin-top:15px;display:block;font-weight:bold;letter-spacing:1px;}
+        .notice-text { font-size: 12px; color: #94a3b8; text-align: center; margin-bottom: 20px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2 style="text-align:center; margin-bottom: 20px;">Finalize Your Account</h2>
+    <h2 style="text-align:center; margin-bottom: 10px;">Account Setup</h2>
+    <p class="notice-text">Please finalize your business profile to start generating professional invoices.</p>
     
-    <span class="section-title">Step 1: Create Fast Login Access</span>
-    <input id="username" placeholder="Choose Unique Username (No spaces)">
-    <input id="key" placeholder="Daily Login Key (min 6 chars)" type="password">
+    <span class="section-title">Identity</span>
+    <input id="username" placeholder="Choose a Unique Username">
 
-    <span class="section-title">Step 2: Business Details (Optional)</span>
+    <span class="section-title">Business Details (Optional)</span>
     <input id="bizName" placeholder="Business / Shop Name">
-    <input id="bizGst" placeholder="GSTIN (Optional)">
-    <textarea id="bizAddress" placeholder="Full Address" rows="3"></textarea>
+    <input id="bizGst" placeholder="GSTIN (e.g. 22AAAAA0000A1Z5)">
+    <textarea id="bizAddress" placeholder="Full Business Address" rows="3"></textarea>
 
-    <button onclick="completeSetup()" id="setupBtn">Complete Setup & Dashboard</button>
+    <button onclick="completeSetup()" id="setupBtn">Finalize & Enter Dashboard</button>
 </div>
 
 <script>
@@ -46,79 +47,56 @@
 
     async function completeSetup() {
         const currentUser = auth.currentUser;
-        if(!currentUser) return alert("Session expired. Please login with Google again.");
+        if(!currentUser) {
+            alert("No active session. Redirecting to login...");
+            location.href = "index.html";
+            return;
+        }
 
         const u = document.getElementById("username").value.trim().toLowerCase().replace(/\s+/g, '');
-        const k = document.getElementById("key").value.trim();
         const bName = document.getElementById("bizName").value.trim() || "My Business";
         const bGst = document.getElementById("bizGst").value.trim() || "N/A";
         const bAddr = document.getElementById("bizAddress").value.trim() || "";
 
-        if(!u || k.length < 6) return alert("Username is required and Key must be at least 6 characters!");
+        if(!u) return alert("Please choose a unique username!");
+        if(u.length < 3) return alert("Username must be at least 3 characters.");
 
         const btn = document.getElementById("setupBtn");
-        btn.innerText = "Processing Fast Login...";
+        btn.innerText = "Saving Profile...";
         btn.disabled = true;
 
         try {
-            // 1. Check if username is already taken in Firestore
+            // 1. Double check username uniqueness in Firestore
             const usernameCheck = await db.collection("users").where("username", "==", u).get();
             if(!usernameCheck.empty) {
                 alert("This username is already taken. Please choose another one.");
                 btn.disabled = false;
-                btn.innerText = "Complete Setup & Dashboard";
+                btn.innerText = "Finalize & Enter Dashboard";
                 return;
             }
 
-            // 2. Create the Fast Login account in Firebase Auth (the 'fake' email)
-            const fakeEmail = u + "@billnova.com";
-            
-            // Note: We create this while being logged in with Google. 
-            // Firebase allows this, but we'll store the connection in Firestore.
-            let secondaryUid = "";
-            try {
-                const credential = await auth.createUserWithEmailAndPassword(fakeEmail, k);
-                secondaryUid = credential.user.uid;
-            } catch (authErr) {
-                if(authErr.code === 'auth/email-already-in-use') {
-                    alert("This username is already registered in our auth system.");
-                } else {
-                    alert("Auth Error: " + authErr.message);
-                }
-                btn.disabled = false;
-                btn.innerText = "Complete Setup & Dashboard";
-                return;
-            }
-
-            // 3. Save everything to Firestore under the GOOGLE UID 
-            // We use the Google UID as the primary account reference
+            // 2. Save Business Profile directly under the Google UID
             await db.collection("users").doc(currentUser.uid).set({
                 username: u,
-                fastLoginUid: secondaryUid, // Link to the fast login account
                 role: "user",
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 profile: {
                     companyName: bName,
                     gstin: bGst,
                     address: bAddr,
-                    email: currentUser.email
+                    email: currentUser.email,
+                    photoURL: currentUser.photoURL || ""
                 }
             });
 
-            // 4. Also create a small reference for the Fast Login UID 
-            // so the system knows which Google account it belongs to
-            await db.collection("fastLoginMap").doc(secondaryUid).set({
-                primaryUid: currentUser.uid
-            });
-
-            alert("Account Linked Successfully! You can now use Fast Login.");
+            // Success Redirect
             location.href = "dashboard.html";
 
         } catch (e) {
             console.error(e);
             alert("Setup Error: " + e.message);
             btn.disabled = false;
-            btn.innerText = "Complete Setup & Dashboard";
+            btn.innerText = "Finalize & Enter Dashboard";
         }
     }
 </script>
