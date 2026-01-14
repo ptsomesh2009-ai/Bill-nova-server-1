@@ -1,80 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Bill Nova | Login</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-
-<style>
-body { margin:0; background:#0f172a; color:white; font-family:Inter,sans-serif; display:flex; justify-content:center; align-items:center; height:100vh;}
-.box{width:360px;padding:40px;background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);text-align:center;box-shadow:0 20px 25px -5px rgba(0,0,0,.5)}
-input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #334155;background:#0f172a;color:white}
-button{width:100%;padding:12px;margin-top:10px;border-radius:8px;border:none;background:#3b82f6;color:white;font-weight:600;cursor:pointer}
-.google-btn{background:white;color:#0f172a;margin-top:20px;display:flex;align-items:center;justify-content:center;gap:10px}
-hr{border:0;border-top:1px solid #334155;margin:25px 0}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill Nova | Login</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { margin:0; background:#0f172a; color:white; font-family:'Inter', sans-serif; display:flex; justify-content:center; align-items:center; height:100vh; }
+        .box { width:360px; padding:40px; background:#1e293b; border-radius:16px; border:1px solid rgba(255,255,255,0.1); text-align:center; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5); }
+        input { width:100%; padding:12px; margin:10px 0; border-radius:8px; border:1px solid #334155; background:#0f172a; color:white; box-sizing:border-box; outline:none; }
+        input:focus { border-color: #3b82f6; }
+        button { width:100%; padding:12px; margin-top:10px; border-radius:8px; border:none; background:#3b82f6; color:white; font-weight:600; cursor:pointer; transition:0.3s; }
+        button:hover { background:#2563eb; }
+        button:disabled { background:#1e293b; color:#64748b; cursor:not-allowed; }
+        .google-btn { background:white; color:#0f172a; margin-top:20px; display:flex; align-items:center; justify-content:center; gap:10px; }
+        hr { border:0; border-top:1px solid #334155; margin:25px 0; }
+    </style>
 </head>
 <body>
 
 <div class="box">
-<h1 style="color:#3b82f6">Bill Nova</h1>
-<p style="color:#94a3b8">Professional Billing Suite</p>
+    <h1 style="color:#3b82f6; margin-bottom:5px;">Bill Nova</h1>
+    <p style="color:#94a3b8; margin-bottom:30px;">Professional Billing Suite</p>
 
-<input id="loginUsername" placeholder="Username">
-<input id="loginKey" type="password" placeholder="Daily Login Key">
-<button onclick="userLogin()">Login</button>
+    <input id="loginUsername" placeholder="Username (e.g. somesh)">
+    <input id="loginKey" placeholder="Daily Login Key (min 6 chars)" type="password">
+    <button onclick="userLogin()" id="loginBtn">Login / Sign Up</button>
 
-<hr>
+    <hr>
 
-<button class="google-btn" onclick="googleLogin()">
-<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"> Sign in with Google
-</button>
+    <button class="google-btn" onclick="googleLogin()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
+        Sign in with Google
+    </button>
 </div>
 
 <script>
-const firebaseConfig={
- apiKey:"AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
- authDomain:"bill-nova.firebaseapp.com",
- projectId:"bill-nova"
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyBNQbvniq3dP6yfX-PGTu3dNuf-6jto3bU",
+    authDomain: "bill-nova.firebaseapp.com",
+    projectId: "bill-nova"
 };
+
 firebase.initializeApp(firebaseConfig);
-const auth=firebase.auth();
-const db=firebase.firestore();
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-// GOOGLE LOGIN
+/**
+ * Checks if user profile exists in Firestore.
+ */
+async function checkUserStatusAndRedirect(user) {
+    try {
+        const userDoc = await db.collection("users").doc(user.uid).get();
+        if (userDoc.exists) {
+            location.href = "dashboard.html";
+        } else {
+            location.href = "setup.html";
+        }
+    } catch (err) {
+        console.error("Redirection Error:", err);
+        // If it's a new user, they might get a permission error until they reach setup
+        location.href = "setup.html"; 
+    }
+}
+
+// Google Login Fix
 function googleLogin(){
- const provider=new firebase.auth.GoogleAuthProvider();
- auth.signInWithPopup(provider).then(res=>{
-   redirectAfterAuth(res.user.uid);
- }).catch(e=>alert(e.message));
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            checkUserStatusAndRedirect(result.user);
+        })
+        .catch(err => alert("Google Login Failed: " + err.message));
 }
 
-// USERNAME + KEY LOGIN
+// Username/Key Login Fix
 async function userLogin(){
- const u=document.getElementById("loginUsername").value.trim();
- const k=document.getElementById("loginKey").value.trim();
- if(!u||!k) return alert("Enter both fields");
+    const u = document.getElementById('loginUsername').value.trim().toLowerCase();
+    const k = document.getElementById('loginKey').value.trim();
+    const btn = document.getElementById('loginBtn');
 
- const snap=await db.collection("users").where("username","==",u).limit(1).get();
- if(snap.empty) return alert("Invalid username");
+    if(!u || k.length < 6) return alert("Please enter Username and a Key (min 6 characters)");
 
- const data=snap.docs[0].data();
- if(data.dailyLoginKey!==k) return alert("Invalid key");
+    btn.disabled = true;
+    btn.innerText = "Authenticating...";
 
- const uid=data.uid;
- await auth.signInWithCustomToken(data.sessionToken);
- redirectAfterAuth(uid);
+    const fakeEmail = u + "@billnova.com";
+
+    try {
+        // Step 1: Try to sign in
+        const result = await auth.signInWithEmailAndPassword(fakeEmail, k);
+        checkUserStatusAndRedirect(result.user);
+    } catch (err) {
+        // Step 2: If user doesn't exist, create account automatically
+        if (err.code === 'auth/user-not-found') {
+            try {
+                const newUser = await auth.createUserWithEmailAndPassword(fakeEmail, k);
+                location.href = "setup.html";
+            } catch (createErr) {
+                alert("Auth Error: " + createErr.message);
+                resetBtn();
+            }
+        } else {
+            alert("Login Failed: Wrong daily key or network issue.");
+            resetBtn();
+        }
+    }
 }
 
-// REDIRECT
-function redirectAfterAuth(uid){
- db.collection("users").doc(uid).get().then(doc=>{
-   if(doc.exists) location.href="dashboard.html";
-   else location.href="setup.html";
- });
+function resetBtn() {
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = false;
+    btn.innerText = "Login / Sign Up";
 }
 </script>
 
