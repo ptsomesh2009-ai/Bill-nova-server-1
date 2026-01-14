@@ -46,7 +46,7 @@
 <div class="sidebar">
     <h2 style="color: var(--primary);">Bill Nova</h2>
     <a href="dashboard.html" class="nav-item"><i class="fas fa-home"></i> Dashboard</a>
-    <a href="invoice-history.html" class="nav-item"><i class="fas fa-file-invoice"></i> Invoices</a>
+    <a href="history.html" class="nav-item"><i class="fas fa-file-invoice"></i> Invoices</a>
     <a href="clients.html" class="nav-item"><i class="fas fa-users"></i> Clients</a>
     <a href="profile.html" class="nav-item"><i class="fas fa-user-cog"></i> Settings</a>
 </div>
@@ -199,7 +199,7 @@ async function saveInvoice() {
         // Saving to the protected user sub-collection
         await db.collection("users").doc(auth.currentUser.uid).collection("invoices").add(invoiceData);
         alert("Invoice Saved Successfully!");
-        location.href = "invoice-history.html";
+        location.href = "history.html";
     } catch (e) {
         alert("Save Error: " + e.message); //
         btn.disabled = false;
